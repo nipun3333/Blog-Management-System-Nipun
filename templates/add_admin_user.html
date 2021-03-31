@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+  <h1>Add Admin User</h1>
+  {% from "includes/_formhelpers.html" import render_field %}
+  <form method="POST" action="">
+    <div class="form-group">
+      {{ render_field(form.username, class_="form-control") }}
+    </div>
+    <div class="form-group">
+      {{ render_field(form.user_password, class_="form-control") }}
+    </div>
+    <div class="form-group">
+        <p> <b> User Type </b> </p>
+        {% for subfield in form.is_Admin %}
+        <tr>
+            <td>{{ subfield }}</td>
+            <td>{{ subfield.label }}</td>
+        </tr>
+        {% endfor %}
+
+        <!-- {{ render_field(form.is_Admin) }} -->
+      </div>
+    <p><input class="btn btn-primary" type="submit" value="Submit">
+  </form>
+{% endblock %}
