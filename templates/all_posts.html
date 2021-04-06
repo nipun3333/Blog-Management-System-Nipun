@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    
+    <h1>Posts</h1>
+    <hr>
+    <table class="tablex">
+        <tr>
+            <th>Index</th>
+            <th>Author</th>
+            <th>Title</th>
+            <th>Brief description</th>
+            <th>Date</th>
+
+        </tr>
+
+        {% for post in posts %}
+        <div>     
+                <tr class="hvr" onclick="window.location='all_posts/{{ post.post_id }}';">
+                    <td> {{loop.index}} </td>
+                    <td> <a href="profile_user/{{post.username}}">{{post.username}}</a> </td>
+                    <td> {{post.title}} </td>
+                    <td> {{post.brief_desc}} </td>
+                    <td> {{post.dt}} </td>
+                </tr>
+            
+        </div>
+        {% endfor %}
+    </table>
+    </hr>
+
+
+
+
+
+{% endblock %}
