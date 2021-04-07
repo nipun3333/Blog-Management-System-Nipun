@@ -47,30 +47,32 @@ DELIMITER //
 
 drop FUNCTION if exists accepted_posts;
 CREATE FUNCTION accepted_posts() RETURNS text DETERMINISTIC
-BEGIN
+BLOCK1: BEGIN
   DECLARE finished INTEGER DEFAULT 0;
-  DECLARE eve_posts TEXT;
-  DECLARE post_postid TEXT;
-  DECLARE acc_postid TEXT;
+  DECLARE eve_posts text default '';
+  DECLARE post_postid INT;
   DEClARE cur_posts
      CURSOR FOR
-     SELECT post_id FROM post;
-  DEClARE cur_permission
-     CURSOR FOR
-     SELECT post_id FROM to_be_accepted;
+     SELECT post_id FROM post;  
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET finished = 1;
   open cur_posts;
 	get_post:LOOP
 		FETCH cur_posts INTO post_postid;
 		IF finished=1 THEN
-set finished=0;
 			LEAVE get_post;
 		END IF;
-	
+		
+		BLOCK2: BEGIN
+		DECLARE finished1 INTEGER DEFAULT 0;
+		DECLARE acc_postid INT;
+		DEClARE cur_permission
+	          CURSOR FOR
+     		  SELECT post_id FROM to_be_accepted;
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET finished1 = 1;
 		open cur_permission;
 			get_permission:LOOP
 				FETCH cur_permission INTO acc_postid;
-				IF finished=1 THEN
+				IF finished1=1 THEN
 					LEAVE get_permission;
 				END IF;
 				
@@ -79,13 +81,15 @@ set finished=0;
 				END IF;
 			END LOOP get_permission;
 		CLOSE cur_permission;
+		end BLOCK2;
 	END LOOP get_post;
   CLOSE cur_posts;
 
   RETURN eve_posts;
-END 
+END BLOCK1
 
 //
 
 DELIMITER ;
+
 
