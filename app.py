@@ -436,6 +436,7 @@ def all_posts():
 
     rec1 = cur.fetchone()
     tp = list(rec1.values())[0]
+    print(tp)
     tkp = list(map(int,tp[1:].split(';')))
     
     dp = []
@@ -457,8 +458,11 @@ def post(postid):
     cur = mysql.connection.cursor()
 
     result = cur.execute("SELECT * FROM post WHERE post_id=%s", [postid])
-
     post = cur.fetchone()
+
+    result1 = cur.execute("SELECT liked(%s, %s)", (session['username'], postid))
+    flag = cur.fetchone()
+    post['flag'] = list(flag.values())[0]
     cur.close()
     return render_template('post.html', post = post)
 
@@ -588,6 +592,31 @@ def rejected(postid):
     flash('Post Rejected', 'danger')
 
     return redirect(url_for('post_permission'))
+
+@app.route('/like_post/<string:postid>/<string:username>')
+@is_logged_in
+def like_post(postid, username):
+    cur = mysql.connection.cursor()
+
+    results = cur.execute("select * from likes")
+    all_us = list(cur.fetchall())
+    
+    f=0
+    for i in all_us:
+        if i['username']==username and str(i['post_id'])==postid:
+            f=1
+            break
+    if f==0:
+        cur.execute("INSERT INTO likes values(%s, %s)", (username, postid))
+    else:
+        cur.execute("delete from likes where username=%s and post_id=%s", (username, postid))
+
+    mysql.connection.commit()
+
+    cur.close()
+
+    return redirect(request.referrer)
+
 
 if __name__ == '__main__':
     app.secret_key='secret123'
