@@ -93,3 +93,33 @@ END BLOCK1
 DELIMITER ;
 
 
+
+
+
+
+
+
+
+
+
+
+--------------------->>>>>>>PROCEDURE TO COUNT VIEWS------------->>>>>>>
+DELIMITER //
+drop procedure if exists check_views;
+
+create procedure check_views(IN Post_id int)
+	BEGIN
+		declare tkp int default 0;
+		set tkp = EXISTS(SELECT * FROM views where views.post_id=Post_id);
+		IF tkp=1 THEN
+			SELECT view INTO @view from views where views.post_id=Post_id;
+			update views set view=@view+1 where views.post_id=Post_id;
+		END IF;
+		IF tkp=0 THEN
+			INSERT INTO views values(Post_id, 1);
+		END IF;
+		
+	END 
+//
+
+DELIMITER;
