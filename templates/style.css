@@ -2,3 +2,19 @@ hvr:hover{
     cursor: pointer;
     background-color: azures;
 }
+tr:hover {
+    cursor: pointer;
+    background-color: lightgrey;
+ }
+ td a { 
+    display: block; 
+    border: 1px solid black;
+    padding: 16px; 
+ }
+ anchor{
+   text-decoration: none;
+   border: 0;
+ }
+ a {
+   text-decoration: none;
+ }

@@ -1,3 +1,5 @@
+# Hello 
+
 from flask import Flask, request, render_template, flash, redirect, url_for, session, logging
 from flask_mysqldb import MySQL
 from wtforms import Form , StringField, TextAreaField, PasswordField, BooleanField, RadioField, validators, DateField
@@ -71,6 +73,8 @@ def login():
                 session['logged_in'] = True
                 session['username'] = username
                 session['admin'] = data['isAdmin']
+                session['superuser'] = data['isSuperAdmin']
+                print(session)
 
                 flash('YOU ARE LOGGED IN', 'success')
                 return redirect(url_for('home'))
@@ -456,9 +460,12 @@ def all_posts():
 @app.route('/all_posts/<string:postid>')
 def post(postid):
     cur = mysql.connection.cursor()
+    cur.execute("call check_views(%s)", [postid])
+    mysql.connection.commit()
 
     result = cur.execute("SELECT * FROM post WHERE post_id=%s", [postid])
     post = cur.fetchone()
+
 
     result1 = cur.execute("SELECT liked(%s, %s)", (session['username'], postid))
     flag = cur.fetchone()

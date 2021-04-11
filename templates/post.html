@@ -13,9 +13,9 @@
     
 <hr>
 
-{% if session.logged_in and session.admin==0 and post.flag==1%}
+{% if session.logged_in and session.admin==0 and session.superuser==0 and post.flag==1%}
 <a href="/like_post/{{ post.post_id }}/{{ session.username }}" class="btn btn-success pull-leftt">Unlike</a>
-{% elif session.logged_in and session.admin==0 and post.flag==0%}
+{% elif session.logged_in and session.admin==0 and session.superuser==0 and post.flag==0%}
 <a href="/like_post/{{ post.post_id }}/{{ session.username }}" class="btn btn-default pull-leftt">Like</a>
 {% endif %}
 <br>
