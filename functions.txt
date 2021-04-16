@@ -123,18 +123,3 @@ create procedure check_views(IN Post_id int)
 //
 
 DELIMITER;
-
-
-
-
-
-
-
----------------->>>trigger for accepted
-delimiter //
-drop trigger if exists not_approved;
-create trigger not_approved after insert on post for each row
-begin
-	insert into to_be_accepted(post_id) values(new.post_id);
-end //
-delimiter ;

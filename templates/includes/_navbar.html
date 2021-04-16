@@ -19,6 +19,7 @@
           {% if session.logged_in and session.username=='super_user' %}
             <li><a>{{session.username}}</a></li>
             <li><a href="/admins_super">Admins</a></li>
+            <li><a href="/users">Users</a></li>
             <li><a href="/logout">Logout</a></li>
           {% elif session.logged_in and session.admin==1 %}
             <li><a>{{session.username}}</a></li>          

@@ -1,14 +1,11 @@
-# Hello 
-
 from flask import Flask, request, render_template, flash, redirect, url_for, session, logging
 from flask_mysqldb import MySQL
-from wtforms import Form , StringField, TextAreaField, PasswordField, BooleanField, RadioField, validators, DateField
+from wtforms import Form , StringField, FileField, TextAreaField, PasswordField, BooleanField, RadioField, validators, DateField
 from passlib.hash import sha256_crypt
 from functools import wraps
 import datetime
 
 app = Flask(__name__)
-
 # configuration of Mysql
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
@@ -122,6 +119,23 @@ def admins_super():
     # closing the connection
     cur.close()
 
+@app.route('/users')
+@is_logged_in
+def users():
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("select * from user")
+
+    users = cur.fetchall()
+
+    cur.close()
+
+    if result > 0:
+        return render_template('all_users.html', users = users)
+    else:
+        msg = 'No users Found'
+        return render_template('all_users.html', msg=msg)
+
 # Article class
 class AdminUserForm(Form):
     username = StringField('username', [validators.Length(min=1, max=200)])
@@ -131,7 +145,6 @@ class AdminUserForm(Form):
     ])
     confirm=PasswordField('Confirm Password')
     # is_Admin = BooleanField('is_Admin', [validators.DataRequired()])
-    is_Admin = RadioField('User_Type', choices=[(1, 'Admin'),(0, 'User')])
 
 # Article route
 @app.route('/add_admin_user', methods=['GET', 'POST'])
@@ -141,7 +154,6 @@ def add_admin_user():
     if request.method == 'POST' and form.validate():
         username = form.username.data
         user_password = sha256_crypt.encrypt(str(form.user_password.data))
-        is_Admin = form.is_Admin.data
 
         # create cursors
         cur = mysql.connection.cursor()
@@ -160,11 +172,9 @@ def add_admin_user():
             # print(123456, True)
             # print(1111, result1, tkp, type(result1))
             # execute
-            cur.execute("INSERT INTO login(username, user_password, isAdmin) VALUES( %s, %s, %s)", (username, user_password, is_Admin))
-            if is_Admin=='1':
-                cur.execute("INSERT INTO admin(username) values(%s)", [username])
-            else:
-                cur.execute("INSERT INTO user(username) values(%s)", [username])
+            cur.execute("INSERT INTO login(username, user_password, isAdmin) VALUES( %s, %s, 1)", (username, user_password))
+            
+            cur.execute("INSERT INTO admin(username) values(%s)", [username])
             # commit to DB
             mysql.connection.commit()
 
@@ -177,6 +187,47 @@ def add_admin_user():
     
     return render_template('add_admin_user.html', form = form)
 
+@app.route('/add_user', methods=['GET', 'POST'])
+@is_logged_in
+def add_user():
+    form = AdminUserForm(request.form)
+    if request.method == 'POST' and form.validate():
+        username = form.username.data
+        user_password = sha256_crypt.encrypt(str(form.user_password.data))
+
+        # create cursors
+        cur = mysql.connection.cursor()
+
+        result = cur.execute("select username from login")
+        
+        result1 = list(cur.fetchall())
+        tkp = []
+        for i in result1:
+            tkp.append(i['username'])
+        if username in tkp:
+            error = 'USERNAME ALREADY EXISTS'
+            return render_template('add_user.html', form = form, error=error)
+        else:
+
+            # print(123456, True)
+            # print(1111, result1, tkp, type(result1))
+            # execute
+            cur.execute("INSERT INTO login(username, user_password, isAdmin) VALUES( %s, %s, 0)", (username, user_password))
+            
+            cur.execute("INSERT INTO user(username) values(%s)", [username])
+            # commit to DB
+            mysql.connection.commit()
+
+            # close connection
+            cur.close()
+
+            flash('User created successfully', 'success')
+
+            return redirect(url_for('users'))
+    
+    return render_template('add_user.html', form = form)
+
+
 # delete article
 @app.route('/delete_admin_user/<string:username>', methods=['GET', 'POST'])
 @is_logged_in
@@ -184,7 +235,6 @@ def delete_admin_user(username):
     cur = mysql.connection.cursor()
 
     cur.execute("DELETE FROM admin WHERE username = %s", [username])
-    cur.execute("DELETE FROM user WHERE username = %s", [username])
     cur.execute("DELETE FROM login WHERE username = %s", [username])
 
     mysql.connection.commit()
@@ -195,7 +245,21 @@ def delete_admin_user(username):
 
     return redirect(url_for('admins_super'))
 
+@app.route('/delete_user/<string:username>', methods=['GET', 'POST'])
+@is_logged_in
+def delete_user(username):
+    cur = mysql.connection.cursor()
 
+    cur.execute("DELETE FROM user WHERE username = %s", [username])
+    cur.execute("DELETE FROM login WHERE username = %s", [username])
+
+    mysql.connection.commit()
+
+    cur.close()
+
+    flash('User Deleted', 'success')
+
+    return redirect(url_for('users'))
 
 class RegisterForm(Form):
     username=StringField('User Name ',[validators.Length(min=5,max=25)])
@@ -209,6 +273,7 @@ class RegisterForm(Form):
     confirm=PasswordField('Confirm Password')
     dob=DateField('Birth Date ', format='%Y/%m/%d')
     gender=RadioField('Gender ',choices=[('Male','Male'),('Female','Female')])
+
     
 @app.route('/register',methods=['GET','POST'])
 def register():
@@ -224,7 +289,10 @@ def register():
         dob=form.dob.data
         gender=form.gender.data
         password = sha256_crypt.encrypt(str(form.password.data))
-        
+        profile = 'male.png'
+        if gender=='Female':
+            profile='female.png'
+
         cur = mysql.connection.cursor()
 
         # Execute query
@@ -233,7 +301,7 @@ def register():
         # print('123',username)        
         if record<=0:
             cur.execute("INSERT INTO login(username, user_password, isAdmin, isSuperAdmin) VALUES(%s, %s, %s, %s)", (username, password, False, False))
-            cur.execute("INSERT INTO user(username, firstName, lastName, birth_date,userEmail,gender) VALUES(%s, %s, %s, %s, %s, %s)", (username, fname, lname,dob, email,gender))
+            cur.execute("INSERT INTO user(username, firstName, lastName, birth_date,userEmail,gender, profile) VALUES(%s, %s, %s, %s, %s, %s, %s)", (username, fname, lname,dob, email,gender, profile))
             mysql.connection.commit()
             flash('You are now registered and can log in', 'success')
             return redirect(url_for('login'))
@@ -304,8 +372,12 @@ def profile(username):
 
             cur = mysql.connection.cursor()
             print(fname, lname, dob, email, gender)
+            kp = 'male.jpg'
+            if gender=='Female':
+                kp = 'female.jpg'
+            print(gender, kp)
             # execute
-            cur.execute("UPDATE user SET firstname = %s, lastname = %s, birth_date = %s, userEmail = %s, gender = %s WHERE username = %s", (fname, lname, dob, email, gender, username))
+            cur.execute("UPDATE user SET firstname = %s, lastname = %s, birth_date = %s, userEmail = %s, gender = %s, profile=%s WHERE username = %s", (fname, lname, dob, email, gender, kp, username))
 
             # commit to DB
             mysql.connection.commit()
@@ -447,7 +519,7 @@ def all_posts():
     for i in posts:
         if i['post_id'] not in tkp:
             dp.append(i)
-
+    
     if results > 0:
         return render_template('all_posts.html', posts = tuple(dp))
     else:
@@ -466,10 +538,10 @@ def post(postid):
     result = cur.execute("SELECT * FROM post WHERE post_id=%s", [postid])
     post = cur.fetchone()
 
-
-    result1 = cur.execute("SELECT liked(%s, %s)", (session['username'], postid))
-    flag = cur.fetchone()
-    post['flag'] = list(flag.values())[0]
+    if len(session)!=0:
+        result1 = cur.execute("SELECT liked(%s, %s)", (session['username'], postid))
+        flag = cur.fetchone()
+        post['flag'] = list(flag.values())[0]
     cur.close()
     return render_template('post.html', post = post)
 
@@ -536,16 +608,49 @@ def delete_post(postid):
 
 @app.route('/profile_user/<string:username>')
 def profile_user(username):
-    print(123)
-    cur = mysql.connection.cursor()
+    user = {}
+    if username!='style.css':
+        cur = mysql.connection.cursor()
 
-    result = cur.execute("SELECT * FROM user WHERE username = %s", [username])
+        result = cur.execute("SELECT * FROM user WHERE username = %s", [username])
+        user = cur.fetchone()
 
-    user = cur.fetchone()
-    
-    cur.close()
+        result1 = cur.execute("SELECT * from post")
+        posts = cur.fetchall()
 
-    return render_template('profile_user.html', user=user) 
+        res = cur.execute("call valid_post(%s)", [username])
+        all_stats = cur.fetchone()
+
+        tp = all_stats['finalStats']
+        kp = list(tp.split(':'))
+        kp.pop(0)
+        for i in range(len(kp)):
+            kp[i]=list(kp[i].split(';'))
+        # print(user)
+        dp = kp.pop()
+        user['likes']=dp[0]
+        user['views']=dp[1]
+        user['posts']=dp[2]
+        tsp = []
+        for i in range(len(kp)):
+            tsp.append(kp[i][0])
+        print(tsp)
+        ans = []
+        for i in posts:
+            if str(i['post_id']) in tsp:
+                ans.append(i)
+                lk = cur.execute("select likesOfParticularPost(%s)", [i['post_id']])
+                lks = cur.fetchone()
+                ans[-1]['likes']=list(lks.values())[0]
+                vw = cur.execute("select viewsOfParticularPost(%s)", [i['post_id']])
+                vws = cur.fetchone()
+                ans[-1]['views']=list(vws.values())[0]
+        # profile = {'ans':ans,'user':user}
+        cur.close()
+        for i in ans:
+            print(i['likes'], i['views'])
+
+    return render_template('profile_user.html', profile={'ans':tuple(ans),'user':user}, pic = user['profile']) 
 
 
 
@@ -623,6 +728,7 @@ def like_post(postid, username):
     cur.close()
 
     return redirect(request.referrer)
+
 
 
 if __name__ == '__main__':
